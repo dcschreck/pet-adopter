@@ -1,6 +1,8 @@
 import React from "react";
 import pf from "petfinder-client";
+import { Consumer } from "./SearchContext";
 import Pet from "./Pet";
+import SearchBox from "./SearchBox";
 
 const petfinder = pf({
   key: process.env.API_KEY,
@@ -9,18 +11,26 @@ const petfinder = pf({
 
 class Results extends React.Component {
   constructor(props) {
-    //constructor calls the parent compontent's constructor (React.Component)
     super(props);
 
-    //state are things that can change, as opposed to props, which are immutable; props always come from a parent into a child
     this.state = {
       pets: []
     };
+    this.search = this.search.bind(this);
   }
   //lifecycle method; i've rendered do the DOM for the first time; gets called once per component
   componentDidMount() {
+    this.search();
+  }
+
+  search() {
     petfinder.pet
-      .find({ output: "full", location: "Seattle, WA" })
+      .find({
+        output: "full",
+        location: this.props.searchParams.location,
+        animal: this.props.searchParams.animal,
+        breed: this.props.searchParams.breed
+      })
       .then(data => {
         let pets;
         //doing a lot of data checking because it's XML; if only one pet, Petfinder returns object. If more, returns object
@@ -43,6 +53,7 @@ class Results extends React.Component {
   render() {
     return (
       <div className="search">
+        <SearchBox search={this.search} />
         {this.state.pets.map(pet => {
           //the map call above is transforming data objects into components
           //the breed stuff is happening because petfinder sometimes has 2 breeds for an animal
@@ -70,4 +81,10 @@ class Results extends React.Component {
   }
 }
 
-export default Results;
+export default function ResultsWithContext(props) {
+  return (
+    <Consumer>
+      {context => <Results {...props} searchParams={context} />}
+    </Consumer>
+  );
+}
